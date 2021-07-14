@@ -1,2 +1,4 @@
 .idea
-C1.xlsx
+*.xlsx
+*.txt
+test.xlsx

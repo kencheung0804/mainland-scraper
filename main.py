@@ -38,7 +38,7 @@ def main(headless_mode: Optional[bool] = False):
         driver.implicitly_wait(30)
         driver.get(city_link_dict[city])
 
-        time.sleep(1)
+        time.sleep(3)
         driver.refresh()
         driver.implicitly_wait(30)
 
@@ -56,7 +56,7 @@ def main(headless_mode: Optional[bool] = False):
 
                 el = find_link_el_for_house_type(driver, house_type)
                 el.click()
-                time.sleep(1)
+                time.sleep(3)
                 driver.refresh()
                 driver.implicitly_wait(30)
                 choose_params(driver, house_type, region, min_price_for_each, max_price_for_each)
