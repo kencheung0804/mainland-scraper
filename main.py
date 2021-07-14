@@ -38,7 +38,7 @@ def main(headless_mode: Optional[bool] = False):
         driver.implicitly_wait(30)
         driver.get(city_link_dict[city])
 
-        time.sleep(3)
+        time.sleep(1.5)
         driver.refresh()
         driver.implicitly_wait(30)
 
@@ -72,9 +72,29 @@ def main(headless_mode: Optional[bool] = False):
                         f'Done searching for {name_of_property} ({house_type}) in {city} on row {start_row}' + line_breaker)
                     print(
                         f'Done searching for {name_of_property} ({house_type}) in {city} on row {start_row}' + line_breaker)
+
                 else:
-                    logging.info(error_msg + line_breaker)
-                    print(error_msg + line_breaker)
+                    driver.implicitly_wait(30)
+
+                    el = find_link_el_for_house_type(driver, house_type)
+                    el.click()
+                    time.sleep(1.5)
+                    driver.refresh()
+                    driver.implicitly_wait(30)
+                    price_list, image_list = find_right_combination(driver, house_type, min_price, max_price,
+                                                                    search_date,
+                                                                    min_price_for_each, max_price_for_each)
+                    if not (price_list is None or image_list is None):
+                        save_result_ws(result_filename, price_list, image_list, name_of_property, house_type)
+                        save_target_ws(wb, ws, target_filename, house_type, start_row, sum(price_list) / 3 * 0.9)
+                        logging.info(
+                            f'Done searching for {name_of_property} ({house_type}) in {city} on row {start_row}' + line_breaker)
+                        print(
+                            f'Done searching for {name_of_property} ({house_type}) in {city} on row {start_row}' + line_breaker)
+                    else:
+                        logging.info(error_msg + line_breaker)
+                        print(error_msg + line_breaker)
+
             except Exception as e:
                 print(e)
                 print(error_msg + line_breaker)
