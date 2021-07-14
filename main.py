@@ -12,6 +12,7 @@ from utils.find_from_excel import find_start_row, find_price_ranges
 from datetime import datetime
 import logging
 import argparse
+import time
 
 
 def main(headless_mode: Optional[bool] = False):
@@ -37,6 +38,10 @@ def main(headless_mode: Optional[bool] = False):
         driver.implicitly_wait(30)
         driver.get(city_link_dict[city])
 
+        time.sleep(1)
+        driver.refresh()
+        driver.implicitly_wait(30)
+
         for house_type in house_type_list:
             error_msg = f'Cannot find the data for {name_of_property} ({house_type}) in {city} on row {start_row}'
             try:
@@ -51,6 +56,8 @@ def main(headless_mode: Optional[bool] = False):
 
                 el = find_link_el_for_house_type(driver, house_type)
                 el.click()
+                time.sleep(1)
+                driver.refresh()
                 driver.implicitly_wait(30)
                 choose_params(driver, house_type, region, min_price_for_each, max_price_for_each)
 

@@ -1,9 +1,8 @@
-import random
 import requests
 from bs4 import BeautifulSoup
 from utils.common import generate_init_headers
 from pypinyin import lazy_pinyin
-from constants.index import ScrapeDict, ScrapeError, Number, user_agents
+from constants.index import ScrapeDict, ScrapeError, Number
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
@@ -12,7 +11,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from typing import Union, Optional
 from utils.check import check_is_residential
 import logging
-
+from fake_useragent import UserAgent
 
 def scrape_city_link_dict() -> ScrapeDict:
     # get all cities' main page link
@@ -32,15 +31,15 @@ def scrape_city_link_dict() -> ScrapeDict:
         raise ScrapeError(error_msg)
 
 
-def init_new_driver(headless_mode: Optional[bool] = False, window_size: Optional[str] = "1920,1080",
+def init_new_driver(headless_mode: Optional[bool] = False,
                     danger_mode: Optional[bool] = True) -> WebDriver:
+    ua = UserAgent()
     options = Options()
-    options.add_argument(f'user-agent={random.choice(user_agents)}')
-    options.add_argument(f"--window-size={window_size}")
+    options.add_argument(f'user-agent={ua.chrome}')
+    options.add_argument("--log-level=3")
 
     if headless_mode:
         options.add_argument("--headless")
-        options.add_argument("--log-level=3")
     caps = DesiredCapabilities().CHROME
     if danger_mode:
         caps["pageLoadStrategy"] = "none"

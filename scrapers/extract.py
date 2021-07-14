@@ -7,6 +7,8 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 
 from constants.index import Number
 from utils.check import check_is_residential, check_dates_within
+import uuid
+import time
 
 
 def extract_date_and_img_from_page(driver: WebDriver, house_type: str) -> tuple[date, str]:
@@ -24,6 +26,9 @@ def extract_date_and_img_from_page(driver: WebDriver, house_type: str) -> tuple[
         post_date = datetime.strptime(raw_post_date, '%Y-%m-%d').date()
     except:
         post_date = datetime.strptime(raw_post_date, '%Y/%m/%d').date()
+
+    driver.set_window_size(1920, 1200)
+    time.sleep(0.5)
     raw_img = driver.get_screenshot_as_base64()
     return post_date, raw_img
 
@@ -33,6 +38,8 @@ def find_right_combination(driver: WebDriver, house_type: str, min_limit: Number
         tuple[Union[list[Number], None], Union[list[str], None]]:
     # driver is already on the main page
     has_next = True
+
+    passed_house_list = []
 
     while has_next:
         # find all the links and prices -> dict
@@ -47,45 +54,72 @@ def find_right_combination(driver: WebDriver, house_type: str, min_limit: Number
             else:
                 prices_in_page = driver.find_elements_by_css_selector("dd.price_right > span:nth-child(2)")
 
-        link_price_list = []
-
         for i in range(len(prices_in_page)):
             p = int(float(prices_in_page[i].text.split('元')[0]))
             raw_meter = meter_in_page[i].text.split('㎡')[0]
             m = int(float(re.findall('\d+', raw_meter)[-1]))
             price = p / m
-            if price < max_limit_for_each and price > min_limit_for_each:
-                link_price_list.append({'price': price, 'index': i + 1})
+            if max_limit_for_each > price > min_limit_for_each:
+                driver.implicitly_wait(30)
+                house_link = driver.find_element_by_css_selector(
+                    f"div.{'houseList' if check_is_residential(house_type) else 'shop_list'} > dl:nth-child({i + 1}) > dt > a")
+                house_link.click()
+                driver.switch_to.window(driver.window_handles[-1])
+                driver.implicitly_wait(30)
+                post_date, raw_img = extract_date_and_img_from_page(driver, house_type)
+                driver.close()
+                driver.switch_to.window(driver.window_handles[0])
+                passed_house_list.append({'price': price, 'raw_img': raw_img, 'post_date': post_date})
+
+                if len(passed_house_list) >= 3:
+                    combinations_generator = combinations(passed_house_list, 3)
+
+                    for comb in combinations_generator:
+                        # match price
+                        price_list = [each.get('price') for each in comb]
+                        avg_price = (sum(price_list) * .9) / len(price_list)
+                        if (avg_price < max_limit) and (avg_price > min_limit):
+                            image_list = []
+                            for each in comb:
+                                if not check_dates_within(input_date, each['post_date']):
+                                    break
+                                else:
+                                    image_list.append(each['raw_img'])
+
+                            if len(image_list) == 3:
+                                return price_list, image_list
 
         # generate all combinations
-        combinations_generator = combinations(link_price_list, 3)
 
-        for comb in combinations_generator:
-            # match price
-            price_list = [each.get('price') for each in comb]
-            avg_price = (sum(price_list) * .9) / len(price_list)
-            if (avg_price < max_limit) and (avg_price > min_limit):
-                # if found matched price, validate the date of all properties
-                image_list = []
-                for each in comb:
-                    idx_in_page = each.get('index')
-                    driver.implicitly_wait(30)
-                    house_link = driver.find_element_by_css_selector(
-                        f"div.{'houseList' if check_is_residential(house_type) else 'shop_list'} > dl:nth-child({idx_in_page}) > dt > a")
-                    house_link.click()
-                    driver.implicitly_wait(30)
-                    driver.switch_to.window(driver.window_handles[-1])
-                    driver.implicitly_wait(30)
-                    post_date, raw_img = extract_date_and_img_from_page(driver, house_type)
-                    driver.close()
-                    driver.switch_to.window(driver.window_handles[0])
-                    if not check_dates_within(input_date, post_date):
-                        break
-                    else:
-                        image_list.append(raw_img)
-
-                if len(image_list) == 3:
-                    return price_list, image_list
+        # # generate all combinations
+        # combinations_generator = combinations(passed_house_list, 3)
+        #
+        # for comb in combinations_generator:
+        #     # match price
+        #     price_list = [each.get('price') for each in comb]
+        #     avg_price = (sum(price_list) * .9) / len(price_list)
+        #     if (avg_price < max_limit) and (avg_price > min_limit):
+        #         # if found matched price, validate the date of all properties
+        #         image_list = []
+        #         for each in comb:
+        #             idx_in_page = each.get('index')
+        #             driver.implicitly_wait(30)
+        #             house_link = driver.find_element_by_css_selector(
+        #                 f"div.{'houseList' if check_is_residential(house_type) else 'shop_list'} > dl:nth-child({idx_in_page}) > dt > a")
+        #             house_link.click()
+        #             driver.implicitly_wait(30)
+        #             driver.switch_to.window(driver.window_handles[-1])
+        #             driver.implicitly_wait(30)
+        #             post_date, raw_img = extract_date_and_img_from_page(driver, house_type)
+        #             driver.close()
+        #             driver.switch_to.window(driver.window_handles[0])
+        #             if not check_dates_within(input_date, post_date):
+        #                 break
+        #             else:
+        #                 image_list.append(raw_img)
+        #
+        #         if len(image_list) == 3:
+        #             return price_list, image_list
 
         driver.implicitly_wait(30)
         next_page_list = driver.find_elements_by_xpath("//a[contains( text( ), '下一页')]")

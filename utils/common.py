@@ -3,7 +3,7 @@ import time
 import re
 from typing import Optional
 
-from constants.index import user_agents
+from fake_useragent import UserAgent
 
 
 def random_sleep():
@@ -12,7 +12,8 @@ def random_sleep():
 
 
 def generate_init_headers():
-    headers = {'User-Agent': random.choice(user_agents)}
+    ua = UserAgent()
+    headers = {'User-Agent': ua.chrome}
     return headers
 
 
